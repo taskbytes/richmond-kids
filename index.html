@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spin Wheel Game</title>
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Gaegu&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #a1c4fd, #c2e9fb);
+            margin: 0;
+            font-family: 'Fredoka One', cursive;
+            overflow: auto;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .top-section {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #wheel-container {
+            position: relative;
+            width: 50vmin;
+            height: 50vmin;
+            border-radius: 50%;
+            border: 10px solid #333;
+            overflow: hidden;
+            margin: 20px;
+            flex-shrink: 0;
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            transform-origin: 50% 50%;
+            transition: transform 6s cubic-bezier(0.33, 1, 0.68, 1);
+            position: relative;
+        }
+
+        .section {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            top: 50%;
+            left: 50%;
+            background: #eee;
+            transform-origin: 0% 0%;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #spin-btn {
+            padding: 10px 20px;
+            background-color: #ff6f61;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-family: 'Gaegu', cursive;
+        }
+
+        #spin-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .right-panel {
+            flex-grow: 1;
+            margin: 20px;
+            min-width: 300px;
+        }
+
+        #selected-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            text-align: left;
+            font-family: 'Gaegu', cursive;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-sizing: border-box;
+        }
+
+        .name-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .name-button {
+            background-color: #ffcc5c;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            font-family: 'Gaegu', cursive;
+            transition: background-color 0.3s;
+        }
+
+        .name-button:hover {
+            background-color: #ffeead;
+        }
+
+        #confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff0;
+            opacity: 0;
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                opacity: 1;
+                transform: translateY(-10px) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(800px) rotate(720deg);
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .top-section {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #wheel-container {
+                width: 70vmin;
+                height: 70vmin;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div id="wheel-container">
+                <div id="wheel"></div>
+            </div>
+            <div class="controls">
+                <button id="spin-btn">Spin!</button>
+            </div>
+            <div class="right-panel">
+                <div id="selected-name"></div>
+            </div>
+        </div>
+        <div class="name-container" id="name-container">
+            <!-- Names will be displayed here -->
+        </div>
+    </div>
+    <div id="confetti"></div>
+
+    <script>
+        const studentNames = [
+            { name: "AJ", clues: ["My initials are the first and 10th letters of the alphabet.", "I'm short and sweet, like a nickname.", "You can find me on sports jerseys.", "I'm only two letters long.", "I start with an 'A' and end with a 'J'.", "I'm sometimes short for 'Andrew Jr.'"] },
+            { name: "Angelo", clues: ["I'm an angelic name from Italy.", "My name means 'messenger'.", "I start with a vowel.", "I have six letters.", "My name ends with 'o'.", "I'm similar to the word 'angel'."] },
+            { name: "Blaze", clues: ["I'm a fiery word.", "I'm fast and energetic.", "I'm a type of fire.", "I have five letters.", "My name rhymes with 'maze'.", "You might say I'm 'blazing' a trail."] },
+            { name: "Chase", clues: ["I'm a fun action word.", "You can chase someone in a game.", "I'm a popular dog name.", "I have five letters.", "My name means to run after something.", "I'm also a popular boy's name starting with 'C'."] },
+            { name: "Chloe", clues: ["I'm a name from Greece meaning 'blooming'.", "I'm a popular girl name.", "I start with a 'C'.", "I have five letters.", "My name rhymes with 'Joey'.", "I share my name with a famous fashion brand."] },
+            { name: "Elsa", clues: ["I'm a queen from a Disney movie.", "I'm icy cold.", "I start with an 'E'.", "I have four letters.", "I sing 'Let It Go'.", "My sister's name is Anna."] },
+            { name: "Emma", clues: ["I'm a classic girl name.", "I'm a main character in a Jane Austen book.", "I start with an 'E'.", "I have four letters.", "I'm one of the most popular girl names.", "My name rhymes with 'lemma'."] },
+            { name: "Eric", clues: ["I'm a strong Viking name.", "I start with an 'E'.", "I'm a popular boy name.", "I have four letters.", "I'm the name of a prince in 'The Little Mermaid'.", "My name ends with a 'c'."] },
+            { name: "Faizan", clues: ["I'm an Arabic name meaning 'successful'.", "I start with an 'F'.", "I'm a unique boy name.", "I have six letters.", "My name is common in South Asian countries.", "My name starts with 'Fa' and ends with 'an'."] },
+            { name: "Gabriel", clues: ["I'm an angelic name from the Bible.", "I start with a 'G'.", "I'm a strong boy name.", "I have seven letters.", "My name means 'God is my strength'.", "I'm the name of a famous archangel."] },
+            { name: "George", clues: ["I'm a classic boy name.", "I'm a British royal name.", "I start with a 'G'.", "I have six letters.", "I'm the name of a curious monkey in books.", "My name means 'farmer' or 'earthworker'."] },
+            { name: "Grace", clues: ["I'm a beautiful girl name.", "I mean 'kindness' or 'favor'.", "I start with a 'G'.", "I have five letters.", "I'm also a word you say before meals.", "My name is a way of moving elegantly."] },
+            { name: "Iker", clues: ["I'm a unique Basque name.", "I start with an 'I'.", "I'm a strong boy name.", "I have four letters.", "I'm the name of a famous soccer goalkeeper.", "My name rhymes with 'biker'."] },
+            { name: "Isla", clues: ["I'm a Scottish island name.", "I start with an 'I'.", "I'm a nature-inspired name.", "I have four letters.", "My name is pronounced 'Eye-la'.", "My name means 'island' in Scottish Gaelic."] },
+            { name: "Jason", clues: ["I'm a hero from Greek mythology.", "I start with a 'J'.", "I'm a strong boy name.", "I have five letters.", "I led the Argonauts to find the Golden Fleece.", "My name means 'healer'."] },
+            { name: "Lola", clues: ["I'm a playful Spanish name.", "I start with an 'L'.", "I'm a popular girl name.", "I have four letters.", "My name rhymes with 'cola'.", "I'm a character in 'Charlie and Lola' books."] },
+            { name: "Maria", clues: ["I'm a classic girl name.", "I'm a royal name.", "I start with an 'M'.", "I have five letters.", "My name is in a song from 'West Side Story'.", "My name means 'sea of sorrow' or 'beloved'."] },
+            { name: "Matvii", clues: ["I'm a unique Ukrainian name.", "I start with an 'M'.", "I'm derived from Matthew.", "I have six letters.", "My name means 'gift of God'.", "My name ends with 'vii'."] },
+            { name: "Mohammad", clues: ["I'm a revered prophet's name.", "I'm an Arabic name meaning 'praiseworthy'.", "I start with an 'M'.", "I have eight letters.", "I'm one of the most common names globally.", "My name can be spelled in various ways."] },
+            { name: "Nathan", clues: ["I'm a Hebrew name meaning 'gift'.", "I'm a prophet's name in the Bible.", "I start with an 'N'.", "I have six letters.", "My name ends with 'than'.", "I'm a popular boy's name starting with 'N'."] },
+            { name: "Porter", clues: ["I'm an occupational name.", "I carry or transport things.", "I start with a 'P'.", "I have six letters.", "My name can refer to a type of dark beer.", "My name ends with 'ter'."] },
+            { name: "Ren", clues: ["I'm a short and simple name.", "I mean 'lotus' or 'reborn'.", "I start with an 'R'.", "I have three letters.", "I'm a character named Kylo in 'Star Wars'.", "My name is used for both boys and girls."] }
+        ];
+        const wheel = document.getElementById("wheel");
+        const spinBtn = document.getElementById("spin-btn");
+        const confettiContainer = document.getElementById("confetti");
+        const selectedNameDiv = document.getElementById("selected-name");
+        const nameContainer = document.getElementById("name-container");
+        let selectedIndices = [];
+        let currentRotation = 0; // Keep track of wheel rotation
+
+        function createWheel() {
+            wheel.innerHTML = "";
+            const numSections = studentNames.length;
+            const anglePerSection = 360 / numSections;
+            for (let i = 0; i < numSections; i++) {
+                const section = document.createElement("div");
+                section.className = "section";
+                const hue = i * (360 / numSections);
+                section.style.background = `hsl(${hue}, 70%, 60%)`;
+                const rotate = i * anglePerSection;
+                const skew = 90 - anglePerSection;
+                section.style.transform = `rotate(${rotate}deg) skewY(${skew}deg)`;
+                wheel.appendChild(section);
+            }
+        }
+
+        function createNameButtons() {
+            nameContainer.innerHTML = "";
+            studentNames.forEach((item) => {
+                const nameButton = document.createElement("button");
+                nameButton.textContent = item.name;
+                nameButton.className = "name-button";
+                nameContainer.appendChild(nameButton);
+            });
+            setupNameButtons();
+        }
+
+        function spinWheel() {
+            if (selectedIndices.length === studentNames.length) {
+                alert("All names have been selected! Resetting the wheel.");
+                selectedIndices = [];
+            }
+
+            const unselectedIndices = studentNames.map((_, index) => index).filter(index => !selectedIndices.includes(index));
+            const randomIndex = unselectedIndices[Math.floor(Math.random() * unselectedIndices.length)];
+            selectedIndices.push(randomIndex);
+
+            const numSections = studentNames.length;
+            const anglePerSection = 360 / numSections;
+            const targetAngle = randomIndex * anglePerSection + anglePerSection / 2;
+
+            const fullRotations = 15; // Rotate at least 15 times
+            const spinAngle = fullRotations * 360 + (360 - targetAngle);
+
+            currentRotation = (currentRotation + spinAngle) % 3600; // Keep the rotation manageable
+
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+            spinBtn.disabled = true;
+            selectedNameDiv.innerHTML = "";
+            delete selectedNameDiv.dataset.selectedName; // Clear previous data
+
+            setTimeout(() => {
+                const clues = studentNames[randomIndex].clues.slice(); // Make a copy of the clues
+                let clueIndex = 0;
+                selectedNameDiv.innerHTML = `<strong>Guess the name! Here is a clue:</strong><br>${clues[clueIndex]}`;
+                selectedNameDiv.dataset.selectedName = studentNames[randomIndex].name;
+                selectedNameDiv.dataset.clues = JSON.stringify(clues);
+                selectedNameDiv.dataset.clueIndex = clueIndex;
+                spinBtn.disabled = false;
+            }, 6000);
+        }
+
+        function checkGuess(guess) {
+            const selectedName = selectedNameDiv.dataset.selectedName;
+            if (selectedName) {
+                if (guess.toLowerCase() === selectedName.toLowerCase()) {
+                    selectedNameDiv.innerHTML = `Correct! The next person is <strong>${selectedName}</strong>!`;
+                    highlightSelectedName(selectedName);
+                    showConfetti();
+                } else {
+                    let clues = JSON.parse(selectedNameDiv.dataset.clues);
+                    let clueIndex = parseInt(selectedNameDiv.dataset.clueIndex);
+                    clueIndex++;
+                    if (clueIndex < clues.length) {
+                        selectedNameDiv.innerHTML += `<br><br><strong>Incorrect! Here is another clue:</strong><br>${clues[clueIndex]}`;
+                        selectedNameDiv.dataset.clueIndex = clueIndex;
+                    } else {
+                        selectedNameDiv.innerHTML += `<br><br><strong>Incorrect! No more clues. Try again!</strong>`;
+                    }
+                }
+            }
+        }
+
+        function highlightSelectedName(selectedName) {
+            const nameButtons = document.querySelectorAll('.name-button');
+            nameButtons.forEach(button => {
+                if (button.textContent === selectedName) {
+                    button.style.backgroundColor = '#77dd77';
+                } else {
+                    button.style.backgroundColor = '#ffcc5c';
+                }
+            });
+        }
+
+        function showConfetti() {
+            confettiContainer.innerHTML = "";
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement("div");
+                confetti.className = "confetti";
+                confetti.style.left = `${Math.random() * window.innerWidth}px`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confetti.style.backgroundColor = getRandomColor();
+                confetti.style.width = `${Math.random() * 8 + 4}px`;
+                confetti.style.height = confetti.style.width;
+                confetti.style.animationDelay = `${-(Math.random() * 5)}s`;
+                confettiContainer.appendChild(confetti);
+            }
+            setTimeout(() => {
+                confettiContainer.innerHTML = "";
+            }, 5000);
+        }
+
+        function getRandomColor() {
+            const colors = ["#ff0", "#f00", "#0f0", "#00f", "#f0f", "#0ff"];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        spinBtn.addEventListener("click", spinWheel);
+
+        function setupNameButtons() {
+            const nameButtons = document.querySelectorAll('.name-button');
+            nameButtons.forEach(button => {
+                button.addEventListener("click", () => checkGuess(button.textContent));
+            });
+        }
+
+        createWheel();
+        createNameButtons();
+    </script>
+</body>
+</html>
